@@ -28,6 +28,7 @@ hate_df %>%
   ggplot(aes(hate_speech_score)) +
   geom_histogram()
 ```
+We can tell that the distribution is skewing to the right.
 
 ```{r}
 hate_df %>% 
@@ -37,11 +38,10 @@ hate_df %>%
   geom_boxplot(show.legend = F, alpha = 0.4) +
   geom_jitter(alpha = 0.1, width = 0.15) +
   labs(title = "sentiment", x = "") +
-  theme(legend.position = "none") 
-  
+  theme(legend.position = "none")   
 ```
 
-
+To better understand data this visualization function is helpfull. 
 ```{r}
 sent_plot <- function(var, title) {
   hate_df %>% View()
@@ -59,6 +59,7 @@ library(patchwork)
 (sent_plot(sentiment, "Sentiment") + sent_plot(respect, "Respect") + sent_plot(insult, "Insult")) / (sent_plot(humiliate, "Humiliate") + sent_plot(dehumanize, "Dehumanize") + sent_plot(violence, "Violence")) / (sent_plot(genocide, "Genocide") + sent_plot(attack_defend, "Attack Defend") + sent_plot(hatespeech, "Hatespeech"))
   
 ```
+we can say that there is a linear relation between varaibles and the output.
 
 ```{r}
 library(tidymodels)
