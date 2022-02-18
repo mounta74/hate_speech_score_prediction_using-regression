@@ -1,0 +1,131 @@
+---
+title: "Measuring Hate Speech"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 8, fig.height = 5)
+
+Sys.setlocale("LC_TIME", "English")
+library(silgelib)
+library(tidyverse)
+
+theme_set(theme_plex())
+update_geom_defaults("rect", list(fill = "midnightblue", alpha = 0.8))
+```
+
+```{r}
+setwd("C:/Data Science/2022/2022_02/Measuring Hate Speech")
+
+hate_df <- read_csv("measuring_hate_speech.csv")
+```
+
+```{r}
+hate_df %>% 
+  select(platform:text) %>%
+  ggplot(aes(hate_speech_score)) +
+  geom_histogram()
+```
+
+```{r}
+hate_df %>% 
+  count(sentiment, hate_speech_score) %>%
+  mutate(sentiment = factor(sentiment)) %>%
+  ggplot(aes(sentiment, hate_speech_score, color = sentiment)) +
+  geom_boxplot(show.legend = F, alpha = 0.4) +
+  geom_jitter(alpha = 0.1, width = 0.15) +
+  labs(title = "sentiment", x = "") +
+  theme(legend.position = "none") 
+  
+```
+
+
+```{r}
+sent_plot <- function(var, title) {
+  hate_df %>% View()
+    count(sentiment, hate_speech_score) %>%
+    mutate(sentiment = factor(sentiment)) %>%
+    ggplot(aes(sentiment, hate_speech_score, color = sentiment)) +
+    geom_boxplot(show.legend = F, alpha = 0.4) +
+    geom_jitter(alpha = 0.1, width = 0.15) +
+    labs(title = title, x = "") +
+    theme(legend.position = "none")
+}
+
+library(patchwork)
+
+(sent_plot(sentiment, "Sentiment") + sent_plot(respect, "Respect") + sent_plot(insult, "Insult")) / (sent_plot(humiliate, "Humiliate") + sent_plot(dehumanize, "Dehumanize") + sent_plot(violence, "Violence")) / (sent_plot(genocide, "Genocide") + sent_plot(attack_defend, "Attack Defend") + sent_plot(hatespeech, "Hatespeech"))
+  
+```
+
+```{r}
+library(tidymodels)
+
+set.seed(123)
+hs_split <- initial_split(
+  hate_df %>% 
+  select(platform:hate_speech_score),
+  strata = hate_speech_score)
+hs_train <- training(hs_split)
+hs_test <- testing(hs_split)
+
+set.seed(234)
+hs_folds <- vfold_cv(hs_train, strata = hate_speech_score)
+hs_folds
+```
+
+```{r}
+glmnet_recipe <-
+  recipe(formula = hate_speech_score ~ .,
+         data = hate_df %>% select(platform:hate_speech_score)) %>%
+  step_zv(all_predictors()) %>%
+  step_normalize(all_predictors()) 
+
+glmnet_spec <- 
+  linear_reg(penalty = tune(), mixture = tune()) %>% 
+  set_mode("regression") %>% 
+  set_engine("glmnet") 
+
+glmnet_workflow <- 
+  workflow(glmnet_recipe, glmnet_spec) 
+
+doParallel::registerDoParallel()
+set.seed(345)
+glmnet_rs <-
+  tune_grid(
+    glmnet_workflow,
+    resamples = hs_folds,
+    grid = 10,
+    control = control_grid(extract = extract_fit_engine)
+  )
+
+glmnet_rs %>% show_best()
+```
+
+```{r}
+glmnet_rs %>%
+  select(id, .extracts) %>%
+  unnest(.extracts) %>%
+  mutate(coefs = map(.extracts, tidy)) %>%
+  unnest(coefs) %>%
+  filter(term != "(Intercept)") %>% 
+  ggplot(aes(estimate, fill = term)) +
+  geom_histogram(alpha = 0.8, bins = 12, show.legend = FALSE) +
+  facet_wrap(vars(term), scales = "free")
+```
+
+It looks like hate_speech_score varies according to the features as for sentiment  it increases by 0.6, for dehumanize it increases by 0.04
+
+
+
+
+
+
+
+
+
+
+
+
