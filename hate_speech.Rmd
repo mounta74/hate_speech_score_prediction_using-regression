@@ -43,11 +43,11 @@ hate_df %>%
 
 To better understand data this visualization function is helpfull. 
 ```{r}
-sent_plot <- function(var, title) {
-  hate_df %>% View()
-    count(sentiment, hate_speech_score) %>%
-    mutate(sentiment = factor(sentiment)) %>%
-    ggplot(aes(sentiment, hate_speech_score, color = sentiment)) +
+sent_plot <- function(num_var, title) {
+  hate_df %>%
+    count({{num_var}}, hate_speech_score) %>%
+    ggplot(aes({{num_var}}, hate_speech_score,
+               color = as.factor({{num_var}}))) +
     geom_boxplot(show.legend = F, alpha = 0.4) +
     geom_jitter(alpha = 0.1, width = 0.15) +
     labs(title = title, x = "") +
