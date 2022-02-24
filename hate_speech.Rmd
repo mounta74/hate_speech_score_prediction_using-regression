@@ -119,6 +119,26 @@ glmnet_rs %>%
 
 It looks like hate_speech_score varies according to the features as for sentiment  it increases by 0.6, for dehumanize it increases by 0.04
 
+# EXPLAINER ----
+
+```{r}
+final_fitted <- last_rs$.workflow[[1]]
+
+explainer <- DALEXtra::explain_tidymodels(
+  final_fitted,
+  data = dplyr::select(hs_train, -hate_speech_score),
+  y = as.integer(hs_train$hate_speech_score),
+  verbose = FALSE
+)
+
+```
+
+# MODEL STUDIO ----
+
+```{r}
+modelStudio::modelStudio(explainer)
+
+```
 
 
 
